@@ -1,5 +1,5 @@
-#include <cstdio>
 #include "../pinned.h"
+#include <cstdio>
 
 #ifdef _MSC_VER
 #define DEBUG_BREAK() __debugbreak()
@@ -16,13 +16,14 @@
   { \
     if (!(X)) \
     { \
-      fprintf(stderr, "ASSERTION FAILED: (" #X ") in " __FILE__ ":" TOSTRING(__LINE__)); \
+      fprintf(stderr, "CHECK FAILED: (" #X ") in " __FILE__ ":" TOSTRING(__LINE__)); \
       DEBUG_BREAK(); \
+      abort(); \
     } \
   } while(false)
 
 
-void test_pinned_basic()
+void test_c_pinned_basic()
 {
   pinned_alloc_info allocation = {};
   CHECK(pinned_alloc(512, PINNED_MAXSIZE_HUGE, &allocation) == 0);
@@ -34,10 +35,10 @@ void test_pinned_basic()
   pinned_free(&allocation);
 }
 
-void test_pinned_grow()
+void test_c_pinned_grow()
 {
   pinned_alloc_info allocation = {};
-  CHECK(pinned_alloc(512, PINNED_MAXSIZE_HUGE, &allocation) == 0);
+  CHECK(pinned_alloc(512, PINNED_MAXSIZE_LARGE, &allocation) == 0);
 
   for (size_t i = 0; i < allocation.size; i++)
     ((char*)allocation.data)[i] = (char)(i % 256);
@@ -53,10 +54,10 @@ void test_pinned_grow()
   pinned_free(&allocation);
 }
 
-void test_grow_from_empty()
+void test_c_grow_from_empty()
 {
   pinned_alloc_info allocation = {};
-  CHECK(pinned_alloc(0, PINNED_MAXSIZE_HUGE, &allocation) == 0);
+  CHECK(pinned_alloc(0, PINNED_MAXSIZE_NORMAL, &allocation) == 0);
 
   CHECK(pinned_realloc(512, &allocation) == 0);
   CHECK(allocation.size >= 512);
@@ -67,7 +68,7 @@ void test_grow_from_empty()
   pinned_free(&allocation);
 }
 
-void test_shrink()
+void test_c_shrink()
 {
   pinned_alloc_info allocation = {};
   CHECK(pinned_alloc(512, PINNED_MAXSIZE_HUGE, &allocation) == 0);
@@ -84,12 +85,202 @@ void test_shrink()
   pinned_free(&allocation);
 }
 
+class test_content
+{
+public:
+  static int32_t live_count;
+
+  test_content() { live_count++; }
+  explicit test_content(int32_t val) : test_content() { this->val = val; }
+  test_content(const test_content& other) : test_content() { this->val = other.val; }
+  test_content(test_content&& other)  noexcept : test_content() { this->val = other.val; other.val = 0; }
+
+  ~test_content() { live_count--; }
+
+  test_content& operator=(const test_content& other) { val = other.val; return *this; }
+  test_content& operator=(test_content&& other) noexcept
+  {
+    if (this != &other)
+    {
+      val = other.val;
+      other.val = 0;
+    }
+    return *this;
+  }
+
+  int32_t val = 0xDEADBEEF;
+};
+
+int32_t test_content::live_count = 0;
+
+#define vec_t pinned_vec
+//#include <vector>
+//#define vec_t std::vector
+
+void test_vec_basic()
+{
+  {
+    vec_t<test_content> vec(100);
+    CHECK(test_content::live_count == 100);
+    CHECK(vec.size() == 100);
+    CHECK(vec.capacity() >= 100);
+    CHECK(!vec.empty());
+
+    for (int32_t i = 0; i < vec.size(); i++)
+      CHECK(vec.at(i).val == 0xDEADBEEF);
+  }
+  CHECK(test_content::live_count == 0);
+}
+
+void test_vec_empty()
+{
+  {
+    vec_t<test_content> vec;
+    CHECK(test_content::live_count == 0);
+    CHECK(vec.size() == 0);
+    CHECK(vec.empty());
+    CHECK(vec.capacity() == 0);
+
+    for (int32_t i = 0; i < 512; i++)
+    {
+      vec.resize(i+1, test_content(i));
+      CHECK(test_content::live_count == i + 1);
+      CHECK(vec.size() == i+1);
+      CHECK(!vec.empty());
+      CHECK(vec.capacity() >= i+1);
+    }
+
+    for (int32_t i = 0; i < 512; i++)
+      CHECK(vec.at(i).val == i);
+  }
+  CHECK(test_content::live_count == 0);
+}
+
+void test_vec_push_pop()
+{
+  vec_t<test_content> vec;
+  CHECK(test_content::live_count == 0);
+
+  vec.push_back(test_content(0));
+  vec.push_back(test_content(1));
+  vec.push_back(test_content(2));
+  vec.push_back(test_content(3));
+
+  CHECK(test_content::live_count == 4);
+  CHECK(vec.size() == 4);
+
+  CHECK(vec[0].val == 0);
+  CHECK(vec[1].val == 1);
+  CHECK(vec[2].val == 2);
+  CHECK(vec[3].val == 3);
+
+  CHECK(vec.front().val == 0);
+  CHECK(vec.back().val == 3);
+  vec.pop_back();
+
+  CHECK(test_content::live_count == 3);
+  CHECK(vec.size() == 3);
+  CHECK(vec.back().val == 2);
+  CHECK(vec.front().val == 0);
+
+  vec.pop_back();
+  vec.pop_back();
+  vec.pop_back();
+
+  CHECK(test_content::live_count == 0);
+  CHECK(vec.empty());
+}
+
+void test_vec_clear()
+{
+  vec_t<test_content> vec;
+  vec.resize(100);
+
+  CHECK(test_content::live_count == 100);
+  CHECK(vec.size() == 100);
+
+  vec.clear();
+
+  CHECK(test_content::live_count == 0);
+  CHECK(vec.empty());
+
+  vec.clear();
+
+  CHECK(test_content::live_count == 0);
+  CHECK(vec.empty());
+
+  vec.resize(100);
+
+  CHECK(test_content::live_count == 100);
+  CHECK(vec.size() == 100);
+
+  vec.clear();
+
+  CHECK(test_content::live_count == 0);
+  CHECK(vec.empty());
+}
+
+void test_vec_realloc()
+{
+  vec_t<test_content> vec(1, test_content(0));
+
+  size_t old_capacity = vec.capacity();
+
+  int32_t size = 1;
+  while (vec.capacity() == old_capacity)
+  {
+    vec.push_back(test_content(size));
+    size++;
+  }
+
+  for (int32_t i = 0; i < 10; i++)
+  {
+    vec.push_back(test_content(size));
+    size++;
+  }
+
+  CHECK(test_content::live_count == size);
+  CHECK(vec.size() == size);
+
+  for (int32_t i = 0; i < size; i++)
+    CHECK(vec[i].val == i);
+}
+
+void test_vec_shrink_to_fit()
+{
+  vec_t<test_content> vec(1);
+
+  size_t original_capacity = vec.capacity();
+  while (vec.capacity() == original_capacity)
+    vec.emplace_back();
+
+  for (int32_t i = 0; i < 10; i++)
+    vec.emplace_back();
+
+  size_t expanded_capacity = vec.capacity();
+  vec.resize(original_capacity);
+
+  CHECK(vec.capacity() == expanded_capacity);
+
+  vec.shrink_to_fit();
+  CHECK(vec.capacity() == original_capacity);
+}
+
+#undef vec_t
+
 int main()
 {
-  test_pinned_basic();
-  test_pinned_grow();
-  test_grow_from_empty();
-  test_shrink();
+  test_c_pinned_basic();
+  test_c_pinned_grow();
+  test_c_grow_from_empty();
+  test_c_shrink();
+
+  test_vec_basic();
+  test_vec_empty();
+  test_vec_push_pop();
+  test_vec_clear();
+  test_vec_realloc();
+  test_vec_shrink_to_fit();
 
   fputs("All tests passed!\n", stderr);
   return 0;
