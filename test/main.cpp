@@ -16,7 +16,7 @@
   { \
     if (!(X)) \
     { \
-      fprintf(stderr, "CHECK FAILED: (" #X ") in " __FILE__ ":" TOSTRING(__LINE__)); \
+      fputs("CHECK FAILED: (" #X ") in " __FILE__ ":" TOSTRING(__LINE__) "\n", stderr); \
       DEBUG_BREAK(); \
       abort(); \
     } \
