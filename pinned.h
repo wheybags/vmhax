@@ -154,13 +154,13 @@ public:
   const_iterator end() const noexcept { return &data()[count]; }
   const_iterator cend() const noexcept { return &data()[count]; }
 
-  reverse_iterator rbegin() noexcept { return std::make_reverse_iterator(begin()); }
-  const_reverse_iterator rbegin() const noexcept { return std::make_reverse_iterator(begin()); }
-  const_reverse_iterator crbegin() const noexcept { return std::make_reverse_iterator(cbegin()); }
+  reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+  const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
+  const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(cend()); }
 
-  reverse_iterator rend() noexcept { return std::make_reverse_iterator(end()); }
-  const_reverse_iterator rend() const noexcept { return std::make_reverse_iterator(end()); }
-  const_reverse_iterator crend() const noexcept { return std::make_reverse_iterator(cend()); }
+  reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+  const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
+  const_reverse_iterator crend() const noexcept { return const_reverse_iterator(cbegin()); }
 
   bool empty() const noexcept { return count == 0; }
   size_type size() const noexcept { return count; }
