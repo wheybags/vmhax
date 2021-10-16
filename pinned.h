@@ -221,6 +221,56 @@ public:
     count++;
   }
 
+  template<class InputIt>
+  iterator insert(iterator pos, InputIt first, InputIt last)
+  {
+    size_t to_add_count = size_t(last - first);
+
+    if (to_add_count == 0)
+      return pos;
+
+    if (count + to_add_count > capacity())
+      reserve(std::max(capacity() * 2, count + to_add_count));
+
+    size_t destination_index_start = size_t(pos - begin());
+
+    // First move existing things forward
+    for (ssize_t source_index = ssize_t(count) - 1; source_index >= ssize_t(destination_index_start); source_index--)
+    {
+      size_t dest_index = size_t(source_index) + to_add_count;
+
+      if (dest_index >= count)
+        new(&data()[dest_index]) T(std::move(data()[source_index]));
+      else
+        data()[dest_index] = std::move(data()[source_index]);
+    }
+
+    // And then insert
+    {
+      size_t i = 0;
+      for (InputIt it = first; it != last; ++it, i++)
+      {
+        if (i >= count)
+          new(&data()[destination_index_start + i]) T(*it);
+        else
+          data()[destination_index_start + i] = *it;
+      }
+    }
+
+    count += to_add_count;
+    return &data()[destination_index_start];
+  }
+
+  iterator insert(iterator pos, const T& value)
+  {
+    return insert(pos, &value, (&value) + 1);
+  }
+
+  iterator insert(iterator pos, T&& value)
+  {
+    return insert(pos, std::make_move_iterator(&value), std::make_move_iterator((&value) + 1));
+  }
+
   void pop_back()
   {
     data()[count-1].~T();

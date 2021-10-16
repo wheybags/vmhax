@@ -266,6 +266,114 @@ void test_vec_shrink_to_fit()
   CHECK(vec.capacity() == original_capacity);
 }
 
+void test_vec_insert_begin()
+{
+  {
+    vec_t<test_content> vec;
+
+    vec.insert(vec.begin(), test_content(0));
+    vec.insert(vec.begin(), test_content(1));
+    vec.insert(vec.begin(), test_content(2));
+    vec.insert(vec.begin(), test_content(3));
+
+    CHECK(vec.size() == 4);
+    CHECK(test_content::live_count == 4);
+
+    CHECK(vec[0].val == 3);
+    CHECK(vec[1].val == 2);
+    CHECK(vec[2].val == 1);
+    CHECK(vec[3].val == 0);
+  }
+
+  CHECK(test_content::live_count == 0);
+}
+
+void test_vec_insert_middle()
+{
+  {
+    vec_t<test_content> dest_vec;
+
+    for (int32_t i = 0; i < 11; i++)
+      dest_vec.emplace_back(i);
+
+    CHECK(dest_vec.size() == 11);
+
+    {
+      vec_t<test_content> source_vec;
+      source_vec.emplace_back(21);
+      source_vec.emplace_back(22);
+      source_vec.emplace_back(23);
+
+      dest_vec.insert(dest_vec.begin() + 4, source_vec.begin(), source_vec.end());
+    }
+
+    CHECK(dest_vec.size() == 14);
+    CHECK(test_content::live_count == 14);
+
+    CHECK(dest_vec[0].val == 0);
+    CHECK(dest_vec[1].val == 1);
+    CHECK(dest_vec[2].val == 2);
+    CHECK(dest_vec[3].val == 3);
+    CHECK(dest_vec[4].val == 21);
+    CHECK(dest_vec[5].val == 22);
+    CHECK(dest_vec[6].val == 23);
+    CHECK(dest_vec[7].val == 4);
+    CHECK(dest_vec[8].val == 5);
+    CHECK(dest_vec[9].val == 6);
+    CHECK(dest_vec[10].val == 7);
+    CHECK(dest_vec[11].val == 8);
+    CHECK(dest_vec[12].val == 9);
+    CHECK(dest_vec[13].val == 10);
+  }
+
+  CHECK(test_content::live_count == 0);
+}
+
+void test_vec_move_insert_range()
+{
+  {
+    vec_t<test_content> dest_vec;
+
+    for (int32_t i = 0; i < 11; i++)
+      dest_vec.emplace_back(i);
+
+    CHECK(dest_vec.size() == 11);
+
+    {
+      vec_t<test_content> source_vec;
+      source_vec.emplace_back(21);
+      source_vec.emplace_back(22);
+      source_vec.emplace_back(23);
+
+      dest_vec.insert(dest_vec.begin() + 4, std::make_move_iterator(source_vec.begin()), std::make_move_iterator(source_vec.end()));
+
+      CHECK(source_vec[0].val == 0);
+      CHECK(source_vec[1].val == 0);
+      CHECK(source_vec[2].val == 0);
+    }
+
+    CHECK(dest_vec.size() == 14);
+    CHECK(test_content::live_count == 14);
+
+    CHECK(dest_vec[0].val == 0);
+    CHECK(dest_vec[1].val == 1);
+    CHECK(dest_vec[2].val == 2);
+    CHECK(dest_vec[3].val == 3);
+    CHECK(dest_vec[4].val == 21);
+    CHECK(dest_vec[5].val == 22);
+    CHECK(dest_vec[6].val == 23);
+    CHECK(dest_vec[7].val == 4);
+    CHECK(dest_vec[8].val == 5);
+    CHECK(dest_vec[9].val == 6);
+    CHECK(dest_vec[10].val == 7);
+    CHECK(dest_vec[11].val == 8);
+    CHECK(dest_vec[12].val == 9);
+    CHECK(dest_vec[13].val == 10);
+  }
+
+  CHECK(test_content::live_count == 0);
+}
+
 #undef vec_t
 
 int main()
@@ -281,6 +389,9 @@ int main()
   test_vec_clear();
   test_vec_realloc();
   test_vec_shrink_to_fit();
+  test_vec_insert_begin();
+  test_vec_insert_middle();
+  test_vec_move_insert_range();
 
   fputs("All tests passed!\n", stderr);
   return 0;
