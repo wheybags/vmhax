@@ -235,7 +235,7 @@ public:
     size_t destination_index_start = size_t(pos - begin());
 
     // First move existing things forward
-    for (ssize_t source_index = ssize_t(count) - 1; source_index >= ssize_t(destination_index_start); source_index--)
+    for (int64_t source_index = int64_t(count) - 1; source_index >= int64_t(destination_index_start); source_index--)
     {
       size_t dest_index = size_t(source_index) + to_add_count;
 
