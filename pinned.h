@@ -271,6 +271,22 @@ public:
     return insert(pos, std::make_move_iterator(&value), std::make_move_iterator((&value) + 1));
   }
 
+  template<class InputIt>
+  iterator insert(const_iterator pos, InputIt first, InputIt last)
+  {
+    return insert(const_cast<iterator>(pos), first, last);
+  }
+
+  iterator insert(const_iterator pos, const T& value)
+  {
+    return insert(pos, &value, (&value) + 1);
+  }
+
+  iterator insert(const_iterator pos, T&& value)
+  {
+    return insert(pos, std::make_move_iterator(&value), std::make_move_iterator((&value) + 1));
+  }
+
   void pop_back()
   {
     data()[count-1].~T();
