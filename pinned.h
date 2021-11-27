@@ -54,12 +54,9 @@ void pinned_free(pinned_alloc_info* allocation);
 //
 // void* pointer_inside_buffer = ((char*)allocation.data) + 20);
 //
-// size_t needed_size = calc_size_needed();
-// if (needed_size > allocation->size)
-//{
-//  ret = pinned_realloc(&allocation, needed_size);
+//  ret = pinned_realloc(&allocation, 8192);
 //  assert(ret);
-//}
+//
 // do_more_stuff_with_bigger_buffer(allocation.data, allocation.size);
 // do_more_stuff_with_old_pointer(pointer_inside_buffer); // valid, because pinned_realloc does not reallocate pointers
 //
@@ -71,6 +68,10 @@ void pinned_free(pinned_alloc_info* allocation);
 #include <new>
 #include <iterator>
 #include <stdexcept>
+
+// This class is basically the same thing as the above interface, but wrapped in an std::vector-like class.
+// Iterators are *not* invalidated on push_back() / emplace_back(). They are of course, when you call erase()
+// or insert() on the middle of the vector.
 
 template <typename T>
 class pinned_vec
