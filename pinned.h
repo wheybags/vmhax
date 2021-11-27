@@ -287,6 +287,34 @@ public:
     return insert(pos, std::make_move_iterator(&value), std::make_move_iterator((&value) + 1));
   }
 
+  iterator erase(iterator first, iterator last)
+  {
+    int64_t start_index = int64_t(first - begin());
+    int64_t range_size = int64_t(last - first);
+
+    for (int64_t i = start_index; i < int64_t(size()) - range_size; i++)
+      data()[i] = std::move(data()[i + range_size]);
+
+    resize(size() - range_size);
+
+    return last - range_size;
+  }
+
+  iterator erase(iterator pos)
+  {
+    return erase(pos, pos + 1);
+  }
+
+  iterator erase(const_iterator first, const_iterator last)
+  {
+    return erase(const_cast<iterator>(first), const_cast<iterator>(last));
+  }
+
+  iterator erase(const_iterator pos)
+  {
+    return erase(const_cast<iterator>(pos), const_cast<iterator>(pos + 1));
+  }
+
   void pop_back()
   {
     data()[count-1].~T();
@@ -321,6 +349,12 @@ public:
         data()[i].~T();
       count = new_count;
     }
+  }
+
+  void swap(pinned_vec& other) noexcept
+  {
+    std::swap(allocation, other.allocation);
+    std::swap(count, other.count);
   }
 
 private:
