@@ -4,7 +4,7 @@
 #include "../pinned.h"
 
 template <typename Vec>
-auto bench(size_t initialCapacity, int32_t iterations)
+auto bench(size_t initialCapacity, uint64_t iterations)
 {
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -12,9 +12,9 @@ auto bench(size_t initialCapacity, int32_t iterations)
   v.reserve(initialCapacity);
   assert(v.capacity() == initialCapacity);
 
-  for (int32_t i = 0; i < iterations; i++)
+  for (uint64_t i = 0; i < iterations; i++)
   {
-    v.push_back(i);
+    v.push_back(uint32_t(i));
     if (v.size() == v.capacity())
     {
       size_t newCapacity = v.capacity() * 2;
@@ -27,13 +27,13 @@ auto bench(size_t initialCapacity, int32_t iterations)
   return duration;
 }
 
-void benchMegabytes(size_t initialCapacity, int32_t megabytes)
+void benchMegabytes(size_t initialCapacity, uint32_t megabytes)
 {
-  constexpr int32_t megabyte = 1024 * 1024;
+  constexpr uint64_t megabyte = 1024 * 1024;
 
-  printf("# %dMiB\n", megabytes);
-  printf("std::vector: %lld ms\n", (long long)std::chrono::duration_cast<std::chrono::milliseconds>(bench<std::vector<int32_t>>(initialCapacity, (megabyte * megabytes) / sizeof(int32_t))).count());
-  printf("pinned_vec:  %lld ms\n", (long long)std::chrono::duration_cast<std::chrono::milliseconds>(bench<pinned_vec<int32_t>>(initialCapacity, (megabyte * megabytes) / sizeof(int32_t))).count());
+  printf("# %u MiB\n", megabytes);
+  printf("std::vector: %lld ms\n", (long long)std::chrono::duration_cast<std::chrono::milliseconds>(bench<std::vector<uint32_t>>(initialCapacity, (megabyte * megabytes) / sizeof(uint32_t))).count());
+  printf("pinned_vec:  %lld ms\n", (long long)std::chrono::duration_cast<std::chrono::milliseconds>(bench<pinned_vec<uint32_t>>(initialCapacity, (megabyte * megabytes) / sizeof(uint32_t))).count());
   puts("");
 }
 
@@ -47,8 +47,8 @@ void benchKilobytes(size_t initialCapacity, int32_t kilobytes)
   int32_t iterations = 20;
   for (int32_t i = 0; i < iterations; i++)
   {
-    stdVecVal += (double)std::chrono::duration_cast<std::chrono::nanoseconds>(bench<std::vector<int32_t>>(initialCapacity, (kilobyte * kilobytes) / sizeof(int32_t))).count();
-    pinnedVecVal += (double)std::chrono::duration_cast<std::chrono::nanoseconds>(bench<pinned_vec<int32_t>>(initialCapacity, (kilobyte * kilobytes) / sizeof(int32_t))).count();
+    stdVecVal += (double)std::chrono::duration_cast<std::chrono::nanoseconds>(bench<std::vector<uint32_t>>(initialCapacity, (kilobyte * kilobytes) / sizeof(uint32_t))).count();
+    pinnedVecVal += (double)std::chrono::duration_cast<std::chrono::nanoseconds>(bench<pinned_vec<uint32_t>>(initialCapacity, (kilobyte * kilobytes) / sizeof(uint32_t))).count();
   }
 
   stdVecVal /= iterations;
@@ -65,11 +65,12 @@ int main(int, char**)
   // pinned_vec capacity is always page-aligned, so use the same start for std::vector to be fair
   size_t initialCapacity = 0;
   {
-    pinned_vec<int32_t> temp;
+    pinned_vec<uint32_t> temp;
     temp.reserve(512);
     initialCapacity = temp.capacity();
   }
 
+  benchMegabytes(initialCapacity, 4096);
   benchMegabytes(initialCapacity, 1024);
   benchMegabytes(initialCapacity, 512);
   benchMegabytes(initialCapacity, 16);

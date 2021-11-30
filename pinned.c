@@ -74,7 +74,7 @@ int pinned_realloc(size_t new_size, pinned_alloc_info* allocation)
   else if (aligned_size > 0)
   {
     // Commit pages when growing
-    if (!VirtualAlloc2(NULL, allocation->data, aligned_size, MEM_COMMIT, PAGE_READWRITE, NULL, 0))
+    if (!VirtualAlloc2(NULL, ((char*)allocation->data) + allocation->size, aligned_size, MEM_COMMIT, PAGE_READWRITE, NULL, 0))
       return (int) GetLastError();
   }
 
