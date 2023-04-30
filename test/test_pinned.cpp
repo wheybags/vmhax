@@ -1,4 +1,5 @@
 #include "test.h"
+#include "../pinned.h"
 
 class test_content
 {

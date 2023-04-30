@@ -1,4 +1,5 @@
 #include "test.h"
+#include "../pinned.h"
 
 void test_c_pinned_basic()
 {

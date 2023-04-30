@@ -62,6 +62,9 @@ void benchKilobytes(size_t initialCapacity, int32_t kilobytes)
 
 int main(int, char**)
 {
+  std::vector<uint8_t> a;
+  a.reserve(PINNED_MAXSIZE_NORMAL);
+
   // pinned_vec capacity is always page-aligned, so use the same start for std::vector to be fair
   size_t initialCapacity = 0;
   {
