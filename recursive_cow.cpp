@@ -43,7 +43,7 @@ static size_t getNewChunkFromMapping(size_t startSearchAtIndex = 0)
   size_t mappingChunkIndex = startSearchAtIndex;
 
   bool found = false;
-  while (true)
+  while (mappingChunkIndex < mappingSize.QuadPart / chunkSize)
   {
     if (mappingPagesRefcounts[mappingChunkIndex] == 0)
     {
@@ -123,6 +123,7 @@ LONG recursiveCowExceptionFilter(_EXCEPTION_POINTERS * ExceptionInfo)
 
       // temporarily map the new chunk somewhere and copy the old data in
       BYTE* tempMapping = (BYTE*)MapViewOfFile3(mapping, nullptr, nullptr, newChunkIndex * chunkSize, chunkSize, 0, PAGE_READWRITE, nullptr, 0);
+      release_assert(tempMapping);
       memcpy(tempMapping, generationChunk, chunkSize);
       release_assert(UnmapViewOfFile(tempMapping));
 
